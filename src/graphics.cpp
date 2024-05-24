@@ -532,8 +532,8 @@ INT WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ PSTR, _In_
 	uint height, hadd = 39u;
 	DWORD style = WS_OVERLAPPEDWINDOW|WS_VISIBLE;
 	if(g_args["window"].as<bool>()) {
-		width = GRAPHICS_FRAME_WIDTH;
-		height = GRAPHICS_FRAME_HEIGHT;
+		width = (uint)g_args["FRAME_WIDTH"].as<int>();
+		height = (uint)g_args["FRAME_HEIGHT"].as<int>();
 #if defined(_WIN32)
 		DWORD exStyle = 0;
 		RECT rect = { 0, 0, (LONG)width, (LONG)height };
@@ -846,7 +846,8 @@ int main(int argc, char* argv[]) {
 int main(int argc, char* argv[]) {
 	info.print_logo();
 	main_arguments = get_main_arguments(argc, argv);
-	camera = Camera(GRAPHICS_FRAME_WIDTH, GRAPHICS_FRAME_HEIGHT, 60u); // width and height must be divisible by 8
+	//camera = Camera(GRAPHICS_FRAME_WIDTH, GRAPHICS_FRAME_HEIGHT, 60u); // width and height must be divisible by 8
+	camera = Camera(g_args["FRAME_WIDTH"].as<int>(), g_args["FRAME_HEIGHT"].as<int>(), 60u); // width and height must be divisible by 8
 	thread compute_thread(main_physics); // start main_physics() in a new thread
 	while(running) {
 		// main loop ################################################################
