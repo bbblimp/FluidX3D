@@ -3268,9 +3268,10 @@ inline vector<string> get_main_arguments(int argc, char* argv[]) {
         ("try", "Y translate input mesh", cxxopts::value<float>()->default_value("0.0"))
         ("trz", "Z translate input mesh", cxxopts::value<float>()->default_value("0.0"))
 
-        ("x", "X width of sim box", cxxopts::value<float>()->default_value("1.0"))
-        ("y", "Y length of sim box", cxxopts::value<float>()->default_value("1.0"))
-        ("z", "Z height of sim box", cxxopts::value<float>()->default_value("1.0"))
+        ("x,width", "X width of sim box", cxxopts::value<float>()->default_value("1.0"))
+        ("y,length", "Y length of sim box", cxxopts::value<float>()->default_value("1.0"))
+        ("z,height", "Z height of sim box", cxxopts::value<float>()->default_value("1.0"))
+
         ("r,resolution", "Resolution", cxxopts::value<unsigned int>()->default_value("4096"))
         ("re", "Reynolds number", cxxopts::value<float>()->default_value("100000.0"))
         ("u", "Velocity in m/s", cxxopts::value<float>()->default_value("5.0"))
@@ -3338,7 +3339,7 @@ inline vector<string> get_main_arguments(int argc, char* argv[]) {
     g_args = options.parse(argc, argv);
 #endif
 
-    std::cerr << "parsed ok1" << std::endl;
+    //std::cerr << "parsed ok1" << std::endl;
 
     if (g_args.count("help")) {
 	//info.print_logo();
@@ -3374,7 +3375,7 @@ inline vector<string> get_main_arguments(int argc, char* argv[]) {
         exit(1);
     }
 
-    std::cerr << "parsed ok2" << std::endl;
+    //std::cerr << "parsed ok2" << std::endl;
 
     if (g_args["BENCHMARK"].as<bool>() && (
 	  g_args["UPDATE_FIELDS"].as<bool>() ||
@@ -3392,7 +3393,7 @@ inline vector<string> get_main_arguments(int argc, char* argv[]) {
         exit(0);
     }
 
-    std::cerr << "parsed ok3" << std::endl;
+    //std::cerr << "parsed ok3" << std::endl;
 
     GRAPHICS_BACKGROUND_COLOR=g_args["BACKGROUND_COLOR"].as<int>();
 
@@ -3444,7 +3445,7 @@ inline vector<string> get_main_arguments(int argc, char* argv[]) {
 
     */
 
-    std::cerr << "parsed ok4" << std::endl;
+    //std::cerr << "parsed ok4" << std::endl;
 
     if (g_args.count("d")) {
       std::string d_param = g_args["d"].as<std::string>();
@@ -3454,10 +3455,10 @@ inline vector<string> get_main_arguments(int argc, char* argv[]) {
       while (std::getline(tokenStream, token, ',')) {
         main_arguments.push_back(token);
       }
-    std::cerr << "parsed ok4" << std::endl;
+    //std::cerr << "parsed ok4" << std::endl;
       return main_arguments;
     } else {
-    std::cerr << "parsed ok5" << std::endl;
+    //std::cerr << "parsed ok5" << std::endl;
       return vector<string>();
     }
 }
