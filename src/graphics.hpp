@@ -35,6 +35,7 @@ public:
 	bool vr=false, tv=false; // virtual reality mode (enables stereoscopic rendering), VR TV mode
 	float eye_distance = 8.0f; // distance between cameras in VR mode
 	bool autorotation = false; // autorotation
+	double autorotation_speed_deg_s = 45.0; // autorotation speed in degrees per second
 	bool lockmouse = false; // mouse movement won't change camera view when this is true
 	std::atomic_bool key_update = true; // a key variable has been updated
 	std::atomic_bool allow_rendering = false; // allows interactive redering if true
@@ -150,7 +151,7 @@ public:
 			if(get_key_state('K')) input_K(frametime);
 			if(get_key_state('L')) input_L(frametime);
 		}
-		if(autorotation) update_rotation(-45.0*frametime, 0.0); // 45 degrees per second
+		if(autorotation) update_rotation(-autorotation_speed_deg_s*frametime, 0.0);
 		if(get_key_state('Y')) input_Y(); // adjust field of view
 		if(get_key_state('X')) input_X();
 		if(get_key_state('N')) input_N(); // adjust vr eye distance

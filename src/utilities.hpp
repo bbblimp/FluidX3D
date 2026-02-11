@@ -3284,6 +3284,7 @@ inline vector<string> get_main_arguments(int argc, char* argv[]) {
         ("camy", "Camera Y", cxxopts::value<float>()->default_value("19.1"))
         ("camz", "Camera Z", cxxopts::value<float>()->default_value("19.2"))
         ("camzoom", "Camera Zoom", cxxopts::value<float>()->default_value("1.0"))
+        ("camautorot", "Camera autorotation speed in deg/s (0 disables startup autorotation)", cxxopts::value<float>()->default_value("0.0"))
         ("camrx", "Camera Rotation X", cxxopts::value<float>()->default_value("33.0"))
         ("camry", "Camera Rotation Y", cxxopts::value<float>()->default_value("42.0"))
         ("camfov", "Camera Field of View", cxxopts::value<float>()->default_value("68.0"))

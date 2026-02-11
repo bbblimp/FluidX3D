@@ -2799,9 +2799,13 @@ string opencl_c_container() { return R( // ########################## begin of O
 	for(float dt=-1.0f; dt<=1.0f; dt+=2.0f) { // integrate forward and backward in time
 		float3 p0, p1=p;
 		for(uint l=0u; l<def_streamline_length/2u; l++) {
-			const uint x = (uint)(p1.x+1.5f*(float)def_Nx)%def_Nx;
-			const uint y = (uint)(p1.y+1.5f*(float)def_Ny)%def_Ny;
-			const uint z = (uint)(p1.z+1.5f*(float)def_Nz)%def_Nz;
+			const float px = p1.x+0.5f*(float)def_Nx;
+			const float py = p1.y+0.5f*(float)def_Ny;
+			const float pz = p1.z+0.5f*(float)def_Nz;
+			if(px<0.0f||py<0.0f||pz<0.0f||px>=(float)def_Nx||py>=(float)def_Ny||pz>=(float)def_Nz) break; // don't wrap streamlines across box boundaries
+			const uint x = (uint)px;
+			const uint y = (uint)py;
+			const uint z = (uint)pz;
 			const uxx n = (uxx)x+(uxx)(y+z*def_Ny)*(uxx)def_Nx;
 			if(flags[n]&(TYPE_S|TYPE_E|TYPE_I|TYPE_G)) return;
 			const float3 un = load3(n, u); // interpolate_u(p1, u)
@@ -2830,7 +2834,10 @@ string opencl_c_container() { return R( // ########################## begin of O
 	const uxx n = get_global_id(0);
 	if(n>=(uxx)def_N||is_halo(n)) return; // don't execute graphics_q_field() on halo
 	if(flags[n]&(TYPE_S|TYPE_E|TYPE_I|TYPE_G)) return;
-	const float3 p = position(coordinates(n));
+	const uint3 xyz = coordinates(n);
+	// Avoid periodic-stencil artifacts at domain edges in Q visualization.
+	if(xyz.x<1u||xyz.x>def_Nx-2u||xyz.y<1u||xyz.y>def_Ny-2u||xyz.z<1u||xyz.z>def_Nz-2u) return;
+	const float3 p = position(xyz);
 	float camera_cache[15]; // cache camera parameters in case the kernel draws more than one shape
 	for(uint i=0u; i<15u; i++) camera_cache[i] = camera[i];
 	if(!is_in_camera_frustrum(p, camera_cache)) return; // skip loading LBM data if grid cell is not visible

@@ -322,7 +322,7 @@ void main_setup() { // delta wing; 							required extensions in defines.hpp: FP
 		else lbm.u.y[n] = u;
 		if(x==0u||x==Nx-1u||y==0u||y==Ny-1u||z==0u||z==Nz-1u) lbm.flags[n] = TYPE_E; // all non periodic
 	}); // ####################################################################### run simulation, export images and data ##########################################################################
-	lbm.graphics.visualization_modes = VIS_FLAG_SURFACE|VIS_Q_CRITERION;
+		lbm.graphics.visualization_modes = VIS_FLAG_LATTICE|VIS_FLAG_SURFACE|VIS_Q_CRITERION;
 	lbm.run();
 } /**/
 #endif //cnd
@@ -1619,7 +1619,7 @@ void main_setup() { // input parameter drivern sim; 					required extensions in 
 
 	//const float si_u = g_args["u"].as<float>();	// velocity in m/s			was 1.0f
 	//const float si_length = g_args["c"].as<float>();// cord or stl length in meters		was 2.4f
-	const float si_T = 10.0f;			// time in seconds
+	const float si_T = g_args["secs"].as<float>();		// requested runtime in seconds
 	//const float si_nu=1.48E-5f;			// kinematic viscosity in m^2/s		nu = x*u/Re
 	//const float si_rho=1.225f;			// density in kg/m^3
 	//const float lbm_length = 0.65f*(float)lbm_N.y; 
@@ -1653,12 +1653,13 @@ void main_setup() { // input parameter drivern sim; 					required extensions in 
 			g_args["trz"].as<float>() * mesh_size.z
 		));
 
-	lbm.voxelize_mesh_on_device(mesh);
-	const uint Nx=lbm.get_Nx(), Ny=lbm.get_Ny(), Nz=lbm.get_Nz(); parallel_for(lbm.get_N(), [&](ulong n) { uint x=0u, y=0u, z=0u; lbm.coordinates(n, x, y, z);
-		if(g_args["floor"].as<bool>() && z==0u) lbm.flags[n] = TYPE_S; // solid floor
-		if(lbm.flags[n]!=TYPE_S) lbm.u.y[n] = lbm_u; // initialize y-velocity everywhere except in solid cells
-		if(x==0u||x==Nx-1u||y==0u||y==Ny-1u||z==Nz-1u) lbm.flags[n] = TYPE_E; // all other simulation box boundaries are inflow/outflow
-	}); // ####################################################################### run simulation, export images and data ##########################################################################
+		lbm.voxelize_mesh_on_device(mesh);
+		const bool add_floor = g_args["floor"].as<bool>();
+		const uint Nx=lbm.get_Nx(), Ny=lbm.get_Ny(), Nz=lbm.get_Nz(); parallel_for(lbm.get_N(), [&](ulong n) { uint x=0u, y=0u, z=0u; lbm.coordinates(n, x, y, z);
+			if(x==0u||x==Nx-1u||y==0u||y==Ny-1u||z==0u||z==Nz-1u) lbm.flags[n] = TYPE_E; // all simulation box boundaries are inflow/outflow
+			if(add_floor && z==0u) lbm.flags[n] = TYPE_S; // optional solid floor overrides TYPE_E
+			if(lbm.flags[n]!=TYPE_S) lbm.u.y[n] = lbm_u; // initialize y-velocity everywhere except in solid cells
+		}); // ####################################################################### run simulation, export images and data ##########################################################################
 
 #if defined(_WIN32)
         if(!g_args["allowsleep"].as<bool>())SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED); // // Function to prevent sleep and display timeout
@@ -1674,9 +1675,13 @@ void main_setup() { // input parameter drivern sim; 					required extensions in 
 	}
 #else // GRAPHICS && !INTERACTIVE_GRAPHICS
 
-	const float camera_zoom = 1.25f*g_args["camzoom"].as<float>(); // camzoom=1.0 keeps legacy view
-	lbm.graphics.set_camera_centered(-40.0f, 20.0f, 78.0f, camera_zoom);
-	const bool auto_record = g_args["realtime"].as<bool>();
+		const float camera_zoom = 1.25f*g_args["camzoom"].as<float>(); // camzoom=1.0 keeps legacy view
+		lbm.graphics.set_camera_centered(-40.0f, 20.0f, 78.0f, camera_zoom);
+		key_H = true; // show help/legend overlay on startup
+		const float camera_autorot = g_args["camautorot"].as<float>();
+		camera.autorotation_speed_deg_s = camera_autorot;
+		camera.autorotation = camera_autorot!=0.0f; // enable startup autorotation only when requested
+		const bool auto_record = g_args["realtime"].as<bool>();
 	if(auto_record) key_O = true; // enable scripted recording without manual keypress
 	lbm.run(0u); // initialize simulation
 	while((si_T<=0.0f) || (lbm.get_t()<=units.t(si_T))) { // main simulation loop
