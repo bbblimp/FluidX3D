@@ -1645,8 +1645,13 @@ void main_setup() { // input parameter drivern sim; 					required extensions in 
 	//Mesh* mesh = read_stl(get_exe_path()+"../stl/Cow_t.stl", lbm.size(), lbm.center(), rotation, lbm_length); // https://www.thingiverse.com/thing:182114/files
 	Mesh* mesh = read_stl(g_args["f"].as<std::string>(), lbm.size(), lbm.center(), rotation, lbm_length); 
 
-	//mesh->translate(float3(0.0f, 1.0f-mesh->pmin.y+0.1f*lbm_length, 1.0f-mesh->pmin.z)); // move mesh forward a bit and to simulation box bottom, keep in mind 1 cell thick box boundaries
-	mesh->translate(float3( g_args["trx"].as<float>() * mesh->pmin.x, g_args["try"].as<float>() * mesh->pmin.y, g_args["trz"].as<float>() * mesh->pmin.z));
+		// Translate by fractions of bounding-box size so --tr* = 0.2 means 20% of object size in that axis.
+		const float3 mesh_size = mesh->get_bounding_box_size();
+		mesh->translate(float3(
+			g_args["trx"].as<float>() * mesh_size.x,
+			g_args["try"].as<float>() * mesh_size.y,
+			g_args["trz"].as<float>() * mesh_size.z
+		));
 
 	lbm.voxelize_mesh_on_device(mesh);
 	const uint Nx=lbm.get_Nx(), Ny=lbm.get_Ny(), Nz=lbm.get_Nz(); parallel_for(lbm.get_N(), [&](ulong n) { uint x=0u, y=0u, z=0u; lbm.coordinates(n, x, y, z);
@@ -1669,7 +1674,8 @@ void main_setup() { // input parameter drivern sim; 					required extensions in 
 	}
 #else // GRAPHICS && !INTERACTIVE_GRAPHICS
 
-	lbm.graphics.set_camera_centered(-40.0f, 20.0f, 78.0f, 1.25f);
+	const float camera_zoom = 1.25f*g_args["camzoom"].as<float>(); // camzoom=1.0 keeps legacy view
+	lbm.graphics.set_camera_centered(-40.0f, 20.0f, 78.0f, camera_zoom);
 	const bool auto_record = g_args["realtime"].as<bool>();
 	if(auto_record) key_O = true; // enable scripted recording without manual keypress
 	lbm.run(0u); // initialize simulation
@@ -1680,9 +1686,10 @@ void main_setup() { // input parameter drivern sim; 					required extensions in 
 			if(key_O || auto_record) {
 			  camera.allow_labeling = true; // render what they want to show
 		  float sim_time= units.si_t(1ull)==1.0f ? info.lbm->get_t() : units.si_t(info.lbm->get_t());
-		  if((sim_time >= next_frame_time) || g_args["realtime"].as<bool>() ) {
-		    if(next_frame_time < 0.0f) next_frame_time =sim_time + (1.0f/g_args["fps"].as<float>())/g_args["slomo"].as<float>(); // First frame
-		    else next_frame_time+=(1.0f/g_args["fps"].as<float>())/g_args["slomo"].as<float>();
+		  const float frame_interval = (1.0f/g_args["fps"].as<float>())/g_args["slomo"].as<float>();
+		  if(next_frame_time < 0.0f) next_frame_time = sim_time; // first frame immediately
+		  if(sim_time >= next_frame_time) {
+		    next_frame_time += frame_interval;
 
 			    camera.allow_labeling = true; // render what they want to show
 			    lbm.graphics.write_frame();
