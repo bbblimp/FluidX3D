@@ -872,24 +872,17 @@ void LBM::sanity_checks_initialization() { // sanity checks during initializatio
 	}
 	surface_used = (bool)(flags_used&(TYPE_F|TYPE_I|TYPE_G));
 	temperature_used = (bool)(flags_used&TYPE_T);
-#ifndef MOVING_BOUNDARIES
-	if(moving_boundaries_used) print_warning("Some boundary cells have non-zero velocity, but MOVING_BOUNDARIES is not enabled. If you intend to use moving boundaries, uncomment \"#define MOVING_BOUNDARIES\" in defines.hpp.");
-#else // MOVING_BOUNDARIES
-	if(!moving_boundaries_used) print_warning("The MOVING_BOUNDARIES extension is enabled but no moving boundary cells (TYPE_S flag and velocity unequal to zero) are placed in the simulation box. You may disable the extension by commenting out \"#define MOVING_BOUNDARIES\" in defines.hpp.");
-#endif // MOVING_BOUNDARIES
-#ifndef EQUILIBRIUM_BOUNDARIES
-	if(equilibrium_boundaries_used) print_error("Some cells are set as equilibrium boundaries with the TYPE_E flag, but EQUILIBRIUM_BOUNDARIES is not enabled. Uncomment \"#define EQUILIBRIUM_BOUNDARIES\" in defines.hpp.");
-#else // EQUILIBRIUM_BOUNDARIES
-	if(!equilibrium_boundaries_used) print_warning("The EQUILIBRIUM_BOUNDARIES extension is enabled but no equilibrium boundary cells (TYPE_E flag) are placed in the simulation box. You may disable the extension by commenting out \"#define EQUILIBRIUM_BOUNDARIES\" in defines.hpp.");
-#endif // EQUILIBRIUM_BOUNDARIES
-#ifndef SURFACE
-	if(surface_used) print_error("Some cells are set as fluid/interface/gas with the TYPE_F/TYPE_I/TYPE_G flags, but SURFACE is not enabled. Uncomment \"#define SURFACE\" in defines.hpp.");
-#else // SURFACE
-	if(!surface_used) print_error("The SURFACE extension is enabled but no fluid/interface/gas cells (TYPE_F/TYPE_I/TYPE_G flags) are placed in the simulation box. Disable the extension by commenting out \"#define SURFACE\" in defines.hpp.");
-#endif // SURFACE
-#ifndef TEMPERATURE
-	if(temperature_used) print_error("Some cells are set as temperature boundary with the TYPE_T flag, but TEMPERATURE is not enabled. Uncomment \"#define TEMPERATURE\" in defines.hpp.");
-#endif // TEMPERATURE
+	const bool moving_boundaries_enabled = g_args["MOVING_BOUNDARIES"].as<bool>();
+	const bool equilibrium_boundaries_enabled = g_args["EQUILIBRIUM_BOUNDARIES"].as<bool>();
+	const bool surface_enabled = g_args["SURFACE"].as<bool>();
+	const bool temperature_enabled = g_args["TEMPERATURE"].as<bool>();
+	if(!moving_boundaries_enabled && moving_boundaries_used) print_warning("Some boundary cells have non-zero velocity, but MOVING_BOUNDARIES is not enabled. Enable \"--MOVING_BOUNDARIES\".");
+	if(moving_boundaries_enabled && !moving_boundaries_used) print_warning("The MOVING_BOUNDARIES extension is enabled but no moving boundary cells (TYPE_S flag and velocity unequal to zero) are placed in the simulation box.");
+	if(!equilibrium_boundaries_enabled && equilibrium_boundaries_used) print_error("Some cells are set as equilibrium boundaries with the TYPE_E flag, but EQUILIBRIUM_BOUNDARIES is not enabled. Enable \"--EQUILIBRIUM_BOUNDARIES\".");
+	if(equilibrium_boundaries_enabled && !equilibrium_boundaries_used) print_warning("The EQUILIBRIUM_BOUNDARIES extension is enabled but no equilibrium boundary cells (TYPE_E flag) are placed in the simulation box.");
+	if(!surface_enabled && surface_used) print_error("Some cells are set as fluid/interface/gas with the TYPE_F/TYPE_I/TYPE_G flags, but SURFACE is not enabled. Enable \"--SURFACE\".");
+	if(surface_enabled && !surface_used) print_error("The SURFACE extension is enabled but no fluid/interface/gas cells (TYPE_F/TYPE_I/TYPE_G flags) are placed in the simulation box.");
+	if(!temperature_enabled && temperature_used) print_error("Some cells are set as temperature boundary with the TYPE_T flag, but TEMPERATURE is not enabled. Enable \"--TEMPERATURE\".");
 }
 
 void LBM::initialize() { // write all data fields to device and call kernel_initialize
