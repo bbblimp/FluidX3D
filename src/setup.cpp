@@ -716,7 +716,7 @@ void main_setup() { // aerodynamics of a cow; 						required extensions in defin
         std::cout << "lbm_N.z=" << std::fixed << std::setprecision(5) << lbm_N.z << std::endl;
 	const float si_u = 1.0f;			// velocity in m/s
 	const float si_length = 2.4f;			// m
-	const float si_T = 10.0f;			// time in seconds
+	const float si_T = g_args["secs"].as<float>();		// simulated time in seconds
 	const float si_nu=1.48E-5f;			// kinematic viscosity in m^2/s
 	const float si_rho=1.225f;			// density in kg/m^3
 	const float lbm_length = 0.65f*(float)lbm_N.y;	// the length of the cow in LBM units. The value itself is in simulation grid units.
@@ -1670,12 +1670,14 @@ void main_setup() { // input parameter drivern sim; 					required extensions in 
 #else // GRAPHICS && !INTERACTIVE_GRAPHICS
 
 	lbm.graphics.set_camera_centered(-40.0f, 20.0f, 78.0f, 1.25f);
+	const bool auto_record = g_args["realtime"].as<bool>();
+	if(auto_record) key_O = true; // enable scripted recording without manual keypress
 	lbm.run(0u); // initialize simulation
 	while((si_T<=0.0f) || (lbm.get_t()<=units.t(si_T))) { // main simulation loop
 		//if(lbm.graphics.next_frame(units.t(si_T), 10.0f)) lbm.graphics.write_frame();
 		// camera.allow_rendering
 		// Simulation Time: draw_label(ox, oy+i, "Simulation Time "+alignr(21u, /**************************************/ (units.si_t(1ull)==1.0f?to_string(info.lbm->get_t()):to_string(units.si_t(info.lbm->get_t()), 6u))+"s"), c); i+=FONT_HEIGHT;
-			if(key_O) {
+			if(key_O || auto_record) {
 			  camera.allow_labeling = true; // render what they want to show
 		  float sim_time= units.si_t(1ull)==1.0f ? info.lbm->get_t() : units.si_t(info.lbm->get_t());
 		  if((sim_time >= next_frame_time) || g_args["realtime"].as<bool>() ) {
