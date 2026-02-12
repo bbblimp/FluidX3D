@@ -1591,12 +1591,22 @@ void main_setup() { // input parameter drivern sim; 					required extensions in 
     float ny = g_args["y"].as<float>(); // 200.0f; 	// Number of lattice nodes along y
     float nz = g_args["z"].as<float>(); // 100.0f; 	// Number of lattice nodes along z
 
-    // Normalize our units so at least one (the smallest) box edge size will be 1.0f in length.
+    // Normalize so the smallest box edge has relative size 1.0.
     float boxmin=nx; if(ny<boxmin)boxmin=ny; if(nz<boxmin)boxmin=nz; nx = nx / boxmin; ny = ny / boxmin; nz = nz / boxmin;
 
-
     // ################################################################## define simulation box size, viscosity and volume force ###################################################################
-    const uint3 lbm_N = resolution(float3(nx/boxmin, ny/boxmin, nz/boxmin),  g_args["r"].as<unsigned int>() ); // input: simulation box aspect ratio and VRAM occupation in MB, output: grid resolution
+    uint3 lbm_N = resolution(float3(nx, ny, nz), g_args["r"].as<unsigned int>()); // input: simulation box aspect ratio and VRAM occupation in MB, output: grid resolution
+    const uint nx_override = g_args["NX"].as<unsigned int>();
+    const uint ny_override = g_args["NY"].as<unsigned int>();
+    const uint nz_override = g_args["NZ"].as<unsigned int>();
+    if(nx_override>0u || ny_override>0u || nz_override>0u) {
+        if(nx_override>0u && ny_override>0u && nz_override>0u) {
+            lbm_N = uint3(nx_override, ny_override, nz_override);
+            print_info("Using manual lattice size override --NX/--NY/--NZ.");
+        } else {
+            print_warning("Ignoring partial lattice override. Provide all of --NX, --NY, --NZ together.");
+        }
+    }
     print_info("lbm_N.x = "+to_string(lbm_N.x));
     print_info("lbm_N.y = "+to_string(lbm_N.y));
     print_info("lbm_N.z = "+to_string(lbm_N.z));
@@ -1653,13 +1663,22 @@ void main_setup() { // input parameter drivern sim; 					required extensions in 
 			g_args["trz"].as<float>() * mesh_size.z
 		));
 
-		lbm.voxelize_mesh_on_device(mesh);
-		const bool add_floor = g_args["floor"].as<bool>();
-		const uint Nx=lbm.get_Nx(), Ny=lbm.get_Ny(), Nz=lbm.get_Nz(); parallel_for(lbm.get_N(), [&](ulong n) { uint x=0u, y=0u, z=0u; lbm.coordinates(n, x, y, z);
-			if(x==0u||x==Nx-1u||y==0u||y==Ny-1u||z==0u||z==Nz-1u) lbm.flags[n] = TYPE_E; // all simulation box boundaries are inflow/outflow
-			if(add_floor && z==0u) lbm.flags[n] = TYPE_S; // optional solid floor overrides TYPE_E
-			if(lbm.flags[n]!=TYPE_S) lbm.u.y[n] = lbm_u; // initialize y-velocity everywhere except in solid cells
-		}); // ####################################################################### run simulation, export images and data ##########################################################################
+    lbm.voxelize_mesh_on_device(mesh);
+    const uint Nx=lbm.get_Nx(), Ny=lbm.get_Ny(), Nz=lbm.get_Nz();
+    const bool floor = g_args["floor"].as<bool>();
+    const uint inlet_layers = 4u;
+    const uint outlet_layers = max(8u, min(64u, Ny/20u));
+    parallel_for(lbm.get_N(), [&](ulong n) { uint x=0u, y=0u, z=0u; lbm.coordinates(n, x, y, z);
+        if(floor && z==0u) lbm.flags[n] = TYPE_S; // solid floor
+        if(lbm.flags[n]!=TYPE_S) lbm.u.y[n] = lbm_u; // initialize y-velocity everywhere except in solid cells
+
+        const bool on_side_walls = x==0u || x==Nx-1u;
+        const bool on_inlet = y<inlet_layers;
+        const bool on_outlet = y>=Ny-outlet_layers;
+        const bool on_top = z==Nz-1u;
+        const bool on_bottom_open = !floor && z==0u;
+        if(lbm.flags[n]!=TYPE_S && (on_side_walls||on_inlet||on_outlet||on_top||on_bottom_open)) lbm.flags[n] = TYPE_E;
+    }); // ####################################################################### run simulation, export images and data ##########################################################################
 
 #if defined(_WIN32)
         if(!g_args["allowsleep"].as<bool>())SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED); // // Function to prevent sleep and display timeout

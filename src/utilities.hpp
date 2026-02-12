@@ -3271,6 +3271,9 @@ inline vector<string> get_main_arguments(int argc, char* argv[]) {
         ("x,width", "X width of sim box", cxxopts::value<float>()->default_value("1.0"))
         ("y,length", "Y length of sim box", cxxopts::value<float>()->default_value("1.0"))
         ("z,height", "Z height of sim box", cxxopts::value<float>()->default_value("1.0"))
+        ("NX", "Override lattice cells in X (0=auto)", cxxopts::value<unsigned int>()->default_value("0"))
+        ("NY", "Override lattice cells in Y (0=auto)", cxxopts::value<unsigned int>()->default_value("0"))
+        ("NZ", "Override lattice cells in Z (0=auto)", cxxopts::value<unsigned int>()->default_value("0"))
 
         ("r,resolution", "Resolution", cxxopts::value<unsigned int>()->default_value("4096"))
         ("re", "Reynolds number", cxxopts::value<float>()->default_value("100000.0"))
