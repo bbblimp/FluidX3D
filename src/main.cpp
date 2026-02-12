@@ -162,7 +162,6 @@ void main_physics() {
 	//info.print_logo(); moved to graphics.cpp/setup.cpp
 	main_setup(); // execute setup
 	running = false;
-	exit(0); // make sure that the program stops
 }
 
 #ifndef GRAPHICS

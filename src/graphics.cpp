@@ -344,7 +344,8 @@ void draw_line_label(const int x0, const int y0, const int x1, const int y1, con
 	}
 }
 void draw_bitmap(int* bitmap) {
-	std::swap(camera.bitmap, bitmap); // swap pointers instead of memory copy
+	if(bitmap==nullptr||camera.bitmap==nullptr||bitmap==camera.bitmap) return;
+	std::copy(bitmap, bitmap+camera.width*camera.height, camera.bitmap);
 }
 
 void draw_pixel(const float3& p, const int color) {
@@ -484,7 +485,6 @@ LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam
 	if(message==WM_DESTROY) {
 		running = false;
 		PostQuitMessage(0);
-		exit(0);
 	} else if(message==WM_MOUSEMOVE) {
 		camera.input_mouse_moved((int)LOWORD(lParam), (int)HIWORD(lParam));
 		if(!camera.lockmouse) SetCursorPos((int)camera.width/2, (int)camera.height/2); // center cursor
@@ -680,7 +680,7 @@ void show_cursor() {
 }
 void input_detection() {
 	XEvent x11_event;
-	while(running) {
+	while(XPending(x11_display)>0) {
 		XNextEvent(x11_display, &x11_event);
 		if(!x11_cursor_movement_captured&&x11_event.type==MotionNotify) { // to avoid cursor movement being captured before cursor has been centered
 			camera.input_mouse_moved((int)x11_event.xmotion.x, (int)x11_event.xmotion.y);
@@ -758,30 +758,31 @@ int main(int argc, char* argv[]) {
 	XWarpPointer(x11_display, None, x11_window, 0, 0, camera.width, camera.height, window_offset_x+(int)camera.width/2, window_offset_y+(int)camera.height/2); // catch cursor from anywhere on monitors
 
 	thread compute_thread(main_physics); // start main_physics() in a new thread
-	thread input_thread(input_detection);
 
 	Clock clock;
 	double frametime = 1.0;
 	while(running) {
 		// main loop ################################################################
+		input_detection();
 		camera.rendring_frame.lock(); // block rendering for other threads until finished
 		camera.update_state(fmax(1.0/(double)camera.fps_limit, frametime));
 		main_graphics();
 		update_frame(frametime);
-		camera.rendring_frame.unlock();
-		frametime = clock.stop();
-		sleep(1.0/(double)camera.fps_limit-frametime);
-		clock.start();
-		// ##########################################################################
+			camera.rendring_frame.unlock();
+			frametime = clock.stop();
+			sleep(1.0/(double)camera.fps_limit-frametime);
+			clock.start();
+			// ##########################################################################
 	}
+
+	running = false;
+	compute_thread.join();
 
 	XFreeGC(x11_display, x11_gc);
 	x11_image->data = nullptr; // XDestroyImage would double-delete x11_image->data pointer, so remove pointer here
 	XDestroyImage(x11_image);
 	XDestroyWindow(x11_display, x11_window);
 	XCloseDisplay(x11_display);
-	compute_thread.join();
-	input_thread.join();
 	return 0;
 }
 
