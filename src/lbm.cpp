@@ -466,9 +466,7 @@ string LBM_Domain::device_defines() const { return
 	"\n	#define MOVING_BOUNDARIES"
 #endif // MOVING_BOUNDARIES
 
-#ifdef EQUILIBRIUM_BOUNDARIES
-	"\n	#define EQUILIBRIUM_BOUNDARIES"
-#endif // EQUILIBRIUM_BOUNDARIES
+		+ (g_args["EQUILIBRIUM_BOUNDARIES"].as<bool>() ? "\n     #define EQUILIBRIUM_BOUNDARIES" : "") + // runtime-toggle equilibrium in/out boundaries
 
 #ifdef FORCE_FIELD
 	"\n	#define FORCE_FIELD"
