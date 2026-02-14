@@ -1694,8 +1694,40 @@ void main_setup() { // input parameter drivern sim; 					required extensions in 
 	}
 #else // GRAPHICS && !INTERACTIVE_GRAPHICS
 
-		const float camera_zoom = 1.25f*g_args["camzoom"].as<float>(); // camzoom=1.0 keeps legacy view
-		lbm.graphics.set_camera_centered(-40.0f, 20.0f, 78.0f, camera_zoom);
+		// Legacy camera defaults for this CND path.
+		const float legacy_rx = -40.0f;
+		const float legacy_ry = 20.0f;
+		const float legacy_fov = 78.0f;
+		const float legacy_zoom = 1.25f*g_args["camzoom"].as<float>(); // camzoom=1.0 keeps legacy view
+
+		// CLI camera args are parsed globally; in this setup they were previously ignored
+		// except for camzoom. Use them when explicitly overridden from parser defaults.
+		const float camx = g_args["camx"].as<float>();
+		const float camy = g_args["camy"].as<float>();
+		const float camz = g_args["camz"].as<float>();
+		const float camrx = g_args["camrx"].as<float>();
+		const float camry = g_args["camry"].as<float>();
+		const float camfov = g_args["camfov"].as<float>();
+		const float camzoom = g_args["camzoom"].as<float>();
+
+		const auto different = [](const float a, const float b) {
+			return fabs(a-b)>1E-5f;
+		};
+		const bool pos_overridden =
+			different(camx, 19.0f) || different(camy, 19.1f) || different(camz, 19.2f);
+		const bool orient_overridden =
+			different(camrx, 33.0f) || different(camry, 42.0f) || different(camfov, 68.0f);
+
+		if(pos_overridden) {
+			// Free camera mode when an explicit camera position is provided.
+			lbm.graphics.set_camera_free(float3(camx, camy, camz), camrx, camry, camfov);
+		} else if(orient_overridden) {
+			// Centered camera with explicit orientation/FOV/zoom.
+			lbm.graphics.set_camera_centered(camrx, camry, camfov, camzoom);
+		} else {
+			// Default legacy view for reproducibility.
+			lbm.graphics.set_camera_centered(legacy_rx, legacy_ry, legacy_fov, legacy_zoom);
+		}
 		key_H = true; // show help/legend overlay on startup
 		const float camera_autorot = g_args["camautorot"].as<float>();
 		camera.autorotation_speed_deg_s = camera_autorot;
