@@ -153,7 +153,8 @@
 #if defined(DEMO_STOKES_DRAG) || \
     defined(DEMO_AHMED_BODY) || \
     defined(DEMO_COLLIDING_DROPLETS) || \
-    defined(DEMO_PARTICLE_TEST)
+    defined(DEMO_PARTICLE_TEST) || \
+    defined(DEMO_CND_WING)
 #define FORCE_FIELD // enables computing the forces on solid boundaries with lbm.calculate_force_on_boundaries(); and enables setting the force for each lattice point independently (enable VOLUME_FORCE too); allocates an extra 12 Bytes/cell
 #endif
 

@@ -363,6 +363,26 @@ void main_setup() { // NASA Common Research Model; 					required extensions in d
 		if(x==0u||x==Nx-1u||y==0u||y==Ny-1u||z==0u||z==Nz-1u) lbm.flags[n] = TYPE_E; // all non periodic
 	}); // ####################################################################### run simulation, export images and data ##########################################################################
 	lbm.graphics.visualization_modes = VIS_FLAG_SURFACE|VIS_Q_CRITERION;
+	const bool vis_lattice = g_args["VIS_LATTICE"].as<int>()!=0;
+	const bool vis_streamlines = g_args["VIS_STREAMLINES"].as<int>()!=0;
+	const int vis_slice_mode_arg = g_args["VIS_SLICE_MODE"].as<int>();
+	if(vis_lattice) lbm.graphics.visualization_modes |= VIS_FLAG_LATTICE;
+	if(vis_streamlines) lbm.graphics.visualization_modes |= VIS_STREAMLINES;
+	if(vis_slice_mode_arg>0) {
+		const int vis_slice_mode = max(0, min(7, vis_slice_mode_arg));
+		const int vis_slice_x_arg = g_args["VIS_SLICE_X"].as<int>();
+		const int vis_slice_y_arg = g_args["VIS_SLICE_Y"].as<int>();
+		const int vis_slice_z_arg = g_args["VIS_SLICE_Z"].as<int>();
+		lbm.graphics.slice_mode = vis_slice_mode;
+		lbm.graphics.slice_x = vis_slice_x_arg>=0 ? min((int)Nx-1, vis_slice_x_arg) : (int)Nx/2;
+		lbm.graphics.slice_y = vis_slice_y_arg>=0 ? min((int)Ny-1, vis_slice_y_arg) : (int)Ny/2;
+		lbm.graphics.slice_z = vis_slice_z_arg>=0 ? min((int)Nz-1, vis_slice_z_arg) : (int)Nz/2;
+	}
+	if(vis_lattice || vis_streamlines || vis_slice_mode_arg>0) {
+		print_info("Visualization override: mode="+to_string(lbm.graphics.visualization_modes)
+			+", slice_mode="+to_string(lbm.graphics.slice_mode)
+			+", slice_xyz=("+to_string(lbm.graphics.slice_x)+","+to_string(lbm.graphics.slice_y)+","+to_string(lbm.graphics.slice_z)+")");
+	}
 	lbm.run();
 } /**/
 #endif //cnd
@@ -466,6 +486,26 @@ void main_setup() { // from Boeing 747; 						required extensions in defines.hpp
 		if(x==0u||x==Nx-1u||y==0u||y==Ny-1u||z==0u||z==Nz-1u) lbm.flags[n] = TYPE_E; // all non periodic
 	}); // ####################################################################### run simulation, export images and data ##########################################################################
 	lbm.graphics.visualization_modes = VIS_FLAG_SURFACE|VIS_Q_CRITERION;
+	const bool vis_lattice = g_args["VIS_LATTICE"].as<int>()!=0;
+	const bool vis_streamlines = g_args["VIS_STREAMLINES"].as<int>()!=0;
+	const int vis_slice_mode_arg = g_args["VIS_SLICE_MODE"].as<int>();
+	if(vis_lattice) lbm.graphics.visualization_modes |= VIS_FLAG_LATTICE;
+	if(vis_streamlines) lbm.graphics.visualization_modes |= VIS_STREAMLINES;
+	if(vis_slice_mode_arg>0) {
+		const int vis_slice_mode = max(0, min(7, vis_slice_mode_arg));
+		const int vis_slice_x_arg = g_args["VIS_SLICE_X"].as<int>();
+		const int vis_slice_y_arg = g_args["VIS_SLICE_Y"].as<int>();
+		const int vis_slice_z_arg = g_args["VIS_SLICE_Z"].as<int>();
+		lbm.graphics.slice_mode = vis_slice_mode;
+		lbm.graphics.slice_x = vis_slice_x_arg>=0 ? min((int)Nx-1, vis_slice_x_arg) : (int)Nx/2;
+		lbm.graphics.slice_y = vis_slice_y_arg>=0 ? min((int)Ny-1, vis_slice_y_arg) : (int)Ny/2;
+		lbm.graphics.slice_z = vis_slice_z_arg>=0 ? min((int)Nz-1, vis_slice_z_arg) : (int)Nz/2;
+	}
+	if(vis_lattice || vis_streamlines || vis_slice_mode_arg>0) {
+		print_info("Visualization override: mode="+to_string(lbm.graphics.visualization_modes)
+			+", slice_mode="+to_string(lbm.graphics.slice_mode)
+			+", slice_xyz=("+to_string(lbm.graphics.slice_x)+","+to_string(lbm.graphics.slice_y)+","+to_string(lbm.graphics.slice_z)+")");
+	}
 #if defined(GRAPHICS) && !defined(INTERACTIVE_GRAPHICS)
 	lbm.graphics.set_camera_free(float3(1.0f*(float)Nx, -0.4f*(float)Ny, 2.0f*(float)Nz), -33.0f, 42.0f, 68.0f);	//
 	lbm.run(0u); // initialize simulation
@@ -506,6 +546,26 @@ void main_setup() { // Boeing 747; 							required extensions in defines.hpp: FP
 		if(x==0u||x==Nx-1u||y==0u||y==Ny-1u||z==0u||z==Nz-1u) lbm.flags[n] = TYPE_E; // all non periodic
 	}); // ####################################################################### run simulation, export images and data ##########################################################################
 	lbm.graphics.visualization_modes = VIS_FLAG_SURFACE|VIS_Q_CRITERION;
+	const bool vis_lattice = g_args["VIS_LATTICE"].as<int>()!=0;
+	const bool vis_streamlines = g_args["VIS_STREAMLINES"].as<int>()!=0;
+	const int vis_slice_mode_arg = g_args["VIS_SLICE_MODE"].as<int>();
+	if(vis_lattice) lbm.graphics.visualization_modes |= VIS_FLAG_LATTICE;
+	if(vis_streamlines) lbm.graphics.visualization_modes |= VIS_STREAMLINES;
+	if(vis_slice_mode_arg>0) {
+		const int vis_slice_mode = max(0, min(7, vis_slice_mode_arg));
+		const int vis_slice_x_arg = g_args["VIS_SLICE_X"].as<int>();
+		const int vis_slice_y_arg = g_args["VIS_SLICE_Y"].as<int>();
+		const int vis_slice_z_arg = g_args["VIS_SLICE_Z"].as<int>();
+		lbm.graphics.slice_mode = vis_slice_mode;
+		lbm.graphics.slice_x = vis_slice_x_arg>=0 ? min((int)Nx-1, vis_slice_x_arg) : (int)Nx/2;
+		lbm.graphics.slice_y = vis_slice_y_arg>=0 ? min((int)Ny-1, vis_slice_y_arg) : (int)Ny/2;
+		lbm.graphics.slice_z = vis_slice_z_arg>=0 ? min((int)Nz-1, vis_slice_z_arg) : (int)Nz/2;
+	}
+	if(vis_lattice || vis_streamlines || vis_slice_mode_arg>0) {
+		print_info("Visualization override: mode="+to_string(lbm.graphics.visualization_modes)
+			+", slice_mode="+to_string(lbm.graphics.slice_mode)
+			+", slice_xyz=("+to_string(lbm.graphics.slice_x)+","+to_string(lbm.graphics.slice_y)+","+to_string(lbm.graphics.slice_z)+")");
+	}
 #if defined(GRAPHICS) && !defined(INTERACTIVE_GRAPHICS)
 	lbm.graphics.set_camera_free(float3(1.0f*(float)Nx, -0.4f*(float)Ny, 2.0f*(float)Nz), -33.0f, 42.0f, 68.0f);
 	lbm.run(0u); // initialize simulation
@@ -1685,7 +1745,22 @@ void main_setup() { // input parameter drivern sim; 					required extensions in 
 #endif
 
 	lbm.graphics.visualization_modes = VIS_FLAG_SURFACE|VIS_Q_CRITERION;
-#if defined(GRAPHICS) && !defined(INTERACTIVE_GRAPHICS)
+	const bool vis_lattice = g_args["VIS_LATTICE"].as<int>()!=0;
+	const bool vis_streamlines = g_args["VIS_STREAMLINES"].as<int>()!=0;
+	const int vis_slice_mode_arg = g_args["VIS_SLICE_MODE"].as<int>();
+	if(vis_lattice) lbm.graphics.visualization_modes |= VIS_FLAG_LATTICE;
+	if(vis_streamlines) lbm.graphics.visualization_modes |= VIS_STREAMLINES;
+	if(vis_slice_mode_arg>0) {
+		const int vis_slice_mode = max(0, min(7, vis_slice_mode_arg));
+		const int vis_slice_x_arg = g_args["VIS_SLICE_X"].as<int>();
+		const int vis_slice_y_arg = g_args["VIS_SLICE_Y"].as<int>();
+		const int vis_slice_z_arg = g_args["VIS_SLICE_Z"].as<int>();
+		lbm.graphics.slice_mode = vis_slice_mode;
+		lbm.graphics.slice_x = vis_slice_x_arg>=0 ? min((int)Nx-1, vis_slice_x_arg) : (int)Nx/2;
+		lbm.graphics.slice_y = vis_slice_y_arg>=0 ? min((int)Ny-1, vis_slice_y_arg) : (int)Ny/2;
+		lbm.graphics.slice_z = vis_slice_z_arg>=0 ? min((int)Nz-1, vis_slice_z_arg) : (int)Nz/2;
+	}
+	#if defined(GRAPHICS) && !defined(INTERACTIVE_GRAPHICS)
 	lbm.graphics.set_camera_centered(-40.0f, 20.0f, 78.0f, 1.25f);
 	lbm.run(0u); // initialize simulation
 	while(lbm.get_t()<=units.t(si_T)) { // main simulation loop
@@ -1733,6 +1808,14 @@ void main_setup() { // input parameter drivern sim; 					required extensions in 
 		camera.autorotation_speed_deg_s = camera_autorot;
 		camera.autorotation = camera_autorot!=0.0f; // enable startup autorotation only when requested
 		const bool auto_record = g_args["realtime"].as<bool>();
+		const bool record_drag_series = g_args["FORCE_FIELD"].as<bool>();
+		const float si_rho_runtime = g_args["rho"].as<float>();
+		const float si_u_runtime = g_args["u"].as<float>();
+		const float dynamic_pressure = 0.5f*si_rho_runtime*sq(si_u_runtime);
+		const string drag_csv = g_args["export"].as<string>()+"drag_timeseries.csv";
+		if(record_drag_series) {
+			write_file(drag_csv, "step,time_s,force_x_N,force_y_N,force_z_N,drag_N,cda_m2\n");
+		}
 	if(auto_record) key_O = true; // enable scripted recording without manual keypress
 	lbm.run(0u); // initialize simulation
 	while((si_T<=0.0f) || (lbm.get_t()<=units.t(si_T))) { // main simulation loop
@@ -1747,6 +1830,21 @@ void main_setup() { // input parameter drivern sim; 					required extensions in 
 		  if(sim_time >= next_frame_time) {
 		    next_frame_time += frame_interval;
 
+			    if(record_drag_series) {
+			    	lbm.update_force_field();
+			    	const float3 lbm_force = lbm.object_force(TYPE_S);
+			    	const float3 si_force = float3(units.si_F(lbm_force.x), units.si_F(lbm_force.y), units.si_F(lbm_force.z));
+			    	const float drag_N = -si_force.y; // force opposing +Y freestream
+			    	const float cda_m2 = dynamic_pressure>1E-12f ? drag_N/dynamic_pressure : 0.0f;
+			    	write_line(drag_csv,
+			    		to_string(lbm.get_t())+","+
+			    		to_string(sim_time, 6u)+","+
+			    		to_string(si_force.x, 6u)+","+
+			    		to_string(si_force.y, 6u)+","+
+			    		to_string(si_force.z, 6u)+","+
+			    		to_string(drag_N, 6u)+","+
+			    		to_string(cda_m2, 6u)+"\n");
+			    }
 			    camera.allow_labeling = true; // render what they want to show
 			    lbm.graphics.write_frame();
 			    // key_O=false;
