@@ -3326,6 +3326,12 @@ inline vector<string> get_main_arguments(int argc, char* argv[]) {
         ("VIS_SLICE_Z", "Slice index in Z (negative means center)", cxxopts::value<int>()->default_value("-1"))
         ("STREAMLINE_SPARSE", "set how many streamlines there are every x lattice points", cxxopts::value<int>()->default_value("8"))
         ("STREAMLINE_LENGTH", "set maximum length of streamlines", cxxopts::value<int>()->default_value("128"))
+        ("SPEED_PROFILE", "Enable in-run speed sweep profile (0/1)", cxxopts::value<int>()->default_value("0"))
+        ("SPEED_PROFILE_START_KPH", "Speed profile start speed in kph", cxxopts::value<float>()->default_value("0.0"))
+        ("SPEED_PROFILE_STEP_KPH", "Speed profile step size in kph", cxxopts::value<float>()->default_value("10.0"))
+        ("SPEED_PROFILE_MAX_KPH", "Speed profile max speed in kph", cxxopts::value<float>()->default_value("50.0"))
+        ("SPEED_PROFILE_RAMP_S", "Speed profile ramp duration in seconds", cxxopts::value<float>()->default_value("5.0"))
+        ("SPEED_PROFILE_HOLD_S", "Speed profile hold duration in seconds", cxxopts::value<float>()->default_value("5.0"))
         ("TRANSPARENCY", "semi-transparent rendering, number represents transparency (equal to 1-opacity). 0=disabled", cxxopts::value<bool>()->default_value("0"))
 	//FRAME_WIDTH\|FRAME_HEIGHT\|BACKGROUND_COLOR\|STREAMLINE_SPARSE\|STREAMLINE_LENGTH\|FRAME_WIDTH
 	//FRAME_WIDTH|FRAME_HEIGHT|BACKGROUND_COLOR|STREAMLINE_SPARSE|STREAMLINE_LENGTH|FRAME_WIDTH

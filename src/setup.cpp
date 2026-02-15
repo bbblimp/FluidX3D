@@ -1636,12 +1636,24 @@ void main_setup() { // input parameter drivern sim; 					required extensions in 
     float next_frame_time = -1.0f; 	// When we reach (or pass) this, output a new .png frame when recording is on.
 
     // SI Units
-    float velocity_si = g_args["u"].as<float>();		//	5.0f; 		// m/s
+    const float velocity_si = g_args["u"].as<float>();		//	5.0f; 		// m/s
     float chord_length_si = g_args["c"].as<float>();		//	0.15f; 	// 150mm in meters
     //float span_length_si = 0.075f; 				// 300mm in meters
     float reynolds_number_si = g_args["re"].as<float>();	//	50466;	// unitless
     float air_density_si = g_args["rho"].as<float>();		//	1.2226f; 	// kg/m^3
-    float dynamic_viscosity_si = (air_density_si * velocity_si * chord_length_si) / reynolds_number_si;
+    const bool speed_profile_enabled = g_args["SPEED_PROFILE"].as<int>()!=0;
+    const float speed_profile_start_kph = g_args["SPEED_PROFILE_START_KPH"].as<float>();
+    const float speed_profile_step_kph = g_args["SPEED_PROFILE_STEP_KPH"].as<float>();
+    const float speed_profile_max_kph = g_args["SPEED_PROFILE_MAX_KPH"].as<float>();
+    const float speed_profile_ramp_s = g_args["SPEED_PROFILE_RAMP_S"].as<float>();
+    const float speed_profile_hold_s = g_args["SPEED_PROFILE_HOLD_S"].as<float>();
+    // Keep lattice Mach number bounded for in-run speed sweeps by scaling units to the highest profiled speed.
+    const float profile_max_si_u = fmax(speed_profile_start_kph, speed_profile_max_kph)/3.6f;
+    const float units_velocity_si = speed_profile_enabled ? fmax(velocity_si, profile_max_si_u) : velocity_si;
+    if(speed_profile_enabled && units_velocity_si>velocity_si+1E-6f) {
+        print_info("SPEED_PROFILE: using reference speed "+to_string(units_velocity_si, 6u)+" m/s for unit mapping.");
+    }
+    float dynamic_viscosity_si = (air_density_si * units_velocity_si * chord_length_si) / reynolds_number_si;
     float kinematic_viscosity_si = dynamic_viscosity_si / air_density_si;
 
 //float3(g_args["x"].as<float>(), g_args["y"].as<float>(), g_args["z"].as<float>())
@@ -1696,8 +1708,10 @@ void main_setup() { // input parameter drivern sim; 					required extensions in 
 	const float lbm_length =  g_args["scale"].as<float>()*0.56f*(float)lbm_N.y; // the length of the stl in LBM units. The value itself is in simulation grid units.
 	print_info("lbm_length = "+to_string(lbm_length, 6u));
 	const float lbm_u = 0.1f;			// the velocity in lattice units (lattice nodes per time step).
-	units.set_m_kg_s(lbm_length, lbm_u, 1.0f, chord_length_si, velocity_si, air_density_si);
-	print_info("Re = "+to_string(to_uint(units.si_Re(chord_length_si, velocity_si, kinematic_viscosity_si))));	// 
+	units.set_m_kg_s(lbm_length, lbm_u, 1.0f, chord_length_si, units_velocity_si, air_density_si);
+	print_info("Re = "+to_string(to_uint(units.si_Re(chord_length_si, units_velocity_si, kinematic_viscosity_si))));	//
+	const float initial_si_u = speed_profile_enabled ? speed_profile_start_kph/3.6f : velocity_si;
+	const float initial_lbm_u = units.u(initial_si_u);
 	// D2Q9?
 	//? LBM lbm(lbm_N, units.nu(kinematic_viscosity_si)); // from cow
 	LBM lbm(lbm_N, 1u, 1u, 1u, units.nu(kinematic_viscosity_si)); // from concorde
@@ -1730,7 +1744,7 @@ void main_setup() { // input parameter drivern sim; 					required extensions in 
     const uint outlet_layers = max(8u, min(64u, Ny/20u));
     parallel_for(lbm.get_N(), [&](ulong n) { uint x=0u, y=0u, z=0u; lbm.coordinates(n, x, y, z);
         if(floor && z==0u) lbm.flags[n] = TYPE_S; // solid floor
-        if(lbm.flags[n]!=TYPE_S) lbm.u.y[n] = lbm_u; // initialize y-velocity everywhere except in solid cells
+        if(lbm.flags[n]!=TYPE_S) lbm.u.y[n] = initial_lbm_u; // initialize to profile start speed
 
         const bool on_side_walls = x==0u || x==Nx-1u;
         const bool on_inlet = y<inlet_layers;
@@ -1807,41 +1821,88 @@ void main_setup() { // input parameter drivern sim; 					required extensions in 
 		const float camera_autorot = g_args["camautorot"].as<float>();
 		camera.autorotation_speed_deg_s = camera_autorot;
 		camera.autorotation = camera_autorot!=0.0f; // enable startup autorotation only when requested
-		const bool auto_record = g_args["realtime"].as<bool>();
-		const bool record_drag_series = g_args["FORCE_FIELD"].as<bool>();
-		const float si_rho_runtime = g_args["rho"].as<float>();
-		const float si_u_runtime = g_args["u"].as<float>();
-		const float dynamic_pressure = 0.5f*si_rho_runtime*sq(si_u_runtime);
-		const string drag_csv = g_args["export"].as<string>()+"drag_timeseries.csv";
-		if(record_drag_series) {
-			write_file(drag_csv, "step,time_s,force_x_N,force_y_N,force_z_N,drag_N,cda_m2\n");
-		}
-	if(auto_record) key_O = true; // enable scripted recording without manual keypress
-	lbm.run(0u); // initialize simulation
-	while((si_T<=0.0f) || (lbm.get_t()<=units.t(si_T))) { // main simulation loop
-		//if(lbm.graphics.next_frame(units.t(si_T), 10.0f)) lbm.graphics.write_frame();
-		// camera.allow_rendering
-		// Simulation Time: draw_label(ox, oy+i, "Simulation Time "+alignr(21u, /**************************************/ (units.si_t(1ull)==1.0f?to_string(info.lbm->get_t()):to_string(units.si_t(info.lbm->get_t()), 6u))+"s"), c); i+=FONT_HEIGHT;
-			if(key_O || auto_record) {
-			  camera.allow_labeling = true; // render what they want to show
-		  float sim_time= units.si_t(1ull)==1.0f ? info.lbm->get_t() : units.si_t(info.lbm->get_t());
-		  const float frame_interval = (1.0f/g_args["fps"].as<float>())/g_args["slomo"].as<float>();
-		  if(next_frame_time < 0.0f) next_frame_time = sim_time; // first frame immediately
-		  if(sim_time >= next_frame_time) {
+			const bool auto_record = g_args["realtime"].as<bool>();
+			const bool record_drag_series = g_args["FORCE_FIELD"].as<bool>();
+			const float si_rho_runtime = g_args["rho"].as<float>();
+			auto speed_profile_kph_at_time = [&](const float t_s) {
+				if(!speed_profile_enabled) return velocity_si*3.6f;
+				const float step = speed_profile_step_kph>0.1f ? speed_profile_step_kph : 0.1f;
+				const float ramp = speed_profile_ramp_s>0.0f ? speed_profile_ramp_s : 0.0f;
+				const float hold = speed_profile_hold_s>0.0f ? speed_profile_hold_s : 0.0f;
+				float remaining = t_s>0.0f ? t_s : 0.0f;
+				float current = speed_profile_start_kph;
+				for(float target=current+step; target<=speed_profile_max_kph+1E-6f; target+=step) {
+					if(ramp>0.0f && remaining<ramp) return current+(target-current)*(remaining/ramp);
+					remaining = ramp>0.0f ? remaining-ramp : remaining;
+					current = target;
+					if(hold>0.0f && remaining<hold) return current;
+					remaining = hold>0.0f ? remaining-hold : remaining;
+				}
+				for(float target=speed_profile_max_kph-step; target>=speed_profile_start_kph-1E-6f; target-=step) {
+					if(ramp>0.0f && remaining<ramp) return current+(target-current)*(remaining/ramp);
+					remaining = ramp>0.0f ? remaining-ramp : remaining;
+					current = target;
+					if(hold>0.0f && remaining<hold) return current;
+					remaining = hold>0.0f ? remaining-hold : remaining;
+				}
+				return current;
+			};
+			auto speed_profile_duration_s = [&]() {
+				if(!speed_profile_enabled) return si_T;
+				const float step = speed_profile_step_kph>0.1f ? speed_profile_step_kph : 0.1f;
+				const float ramp = speed_profile_ramp_s>0.0f ? speed_profile_ramp_s : 0.0f;
+				const float hold = speed_profile_hold_s>0.0f ? speed_profile_hold_s : 0.0f;
+				const int up_steps = max(0, (int)round((speed_profile_max_kph-speed_profile_start_kph)/step));
+				const int down_steps = up_steps;
+				return (float)(up_steps+down_steps)*(ramp+hold);
+			};
+			const float sweep_duration_s = speed_profile_duration_s();
+			float last_profile_si_u = -1.0f;
+			const string drag_csv = g_args["export"].as<string>()+"drag_timeseries.csv";
+			if(record_drag_series) {
+				write_file(drag_csv, "step,time_s,speed_mps,speed_kph,force_x_N,force_y_N,force_z_N,drag_N,cda_m2\n");
+			}
+		if(auto_record) key_O = true; // enable scripted recording without manual keypress
+		lbm.run(0u); // initialize simulation
+		while((sweep_duration_s<=0.0f) || (lbm.get_t()<=units.t(sweep_duration_s))) { // main simulation loop
+			//if(lbm.graphics.next_frame(units.t(si_T), 10.0f)) lbm.graphics.write_frame();
+			// camera.allow_rendering
+			// Simulation Time: draw_label(ox, oy+i, "Simulation Time "+alignr(21u, /**************************************/ (units.si_t(1ull)==1.0f?to_string(info.lbm->get_t()):to_string(units.si_t(info.lbm->get_t()), 6u))+"s"), c); i+=FONT_HEIGHT;
+				const float sim_time = units.si_t(1ull)==1.0f ? info.lbm->get_t() : units.si_t(info.lbm->get_t());
+				const float target_kph = speed_profile_kph_at_time(sim_time);
+				const float target_si_u = target_kph/3.6f;
+				if(speed_profile_enabled && fabs(target_si_u-last_profile_si_u)>1E-6f) {
+					const float target_lbm_u = units.u(target_si_u);
+					// Synchronize velocity field so in-run profile updates actually reach GPU memory.
+					lbm.u.read_from_device();
+					parallel_for(lbm.get_N(), [&](ulong n) {
+						if((lbm.flags[n]&TYPE_E)!=0u) lbm.u.y[n] = target_lbm_u;
+					});
+					lbm.u.write_to_device();
+					last_profile_si_u = target_si_u;
+				}
+				if(key_O || auto_record) {
+				  camera.allow_labeling = true; // render what they want to show
+			  const float frame_interval = (1.0f/g_args["fps"].as<float>())/g_args["slomo"].as<float>();
+			  if(next_frame_time < 0.0f) next_frame_time = sim_time; // first frame immediately
+			  if(sim_time >= next_frame_time) {
 		    next_frame_time += frame_interval;
 
-			    if(record_drag_series) {
-			    	lbm.update_force_field();
-			    	const float3 lbm_force = lbm.object_force(TYPE_S);
-			    	const float3 si_force = float3(units.si_F(lbm_force.x), units.si_F(lbm_force.y), units.si_F(lbm_force.z));
-			    	const float drag_N = -si_force.y; // force opposing +Y freestream
-			    	const float cda_m2 = dynamic_pressure>1E-12f ? drag_N/dynamic_pressure : 0.0f;
-			    	write_line(drag_csv,
-			    		to_string(lbm.get_t())+","+
-			    		to_string(sim_time, 6u)+","+
-			    		to_string(si_force.x, 6u)+","+
-			    		to_string(si_force.y, 6u)+","+
-			    		to_string(si_force.z, 6u)+","+
+				    if(record_drag_series) {
+				    	lbm.update_force_field();
+				    	const float3 lbm_force = lbm.object_force(TYPE_S);
+				    	const float3 si_force = float3(units.si_F(lbm_force.x), units.si_F(lbm_force.y), units.si_F(lbm_force.z));
+				    	const float drag_N = -si_force.y; // force opposing +Y freestream
+				    	const float dynamic_pressure = 0.5f*si_rho_runtime*sq(target_si_u);
+				    	const float cda_m2 = dynamic_pressure>1E-12f ? drag_N/dynamic_pressure : 0.0f;
+				    	write_line(drag_csv,
+				    		to_string(lbm.get_t())+","+
+				    		to_string(sim_time, 6u)+","+
+				    		to_string(target_si_u, 6u)+","+
+				    		to_string(target_kph, 6u)+","+
+				    		to_string(si_force.x, 6u)+","+
+				    		to_string(si_force.y, 6u)+","+
+				    		to_string(si_force.z, 6u)+","+
 			    		to_string(drag_N, 6u)+","+
 			    		to_string(cda_m2, 6u)+"\n");
 			    }
