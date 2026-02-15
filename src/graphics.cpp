@@ -727,19 +727,40 @@ int main(int argc, char* argv[]) {
 	if(!x11_display) print_error("No X11 display available.");
 
 	Window x11_root_window = DefaultRootWindow(x11_display);
+	uint width = (uint)DisplayWidth(x11_display, DefaultScreen(x11_display));
+	uint height = (uint)DisplayHeight(x11_display, DefaultScreen(x11_display));
+	int window_offset_x = 0;
+	int window_offset_y = 0;
+	uint fps_limit = 60u;
 	XRRScreenResources* x11_screen_resources = XRRGetScreenResources(x11_display, x11_root_window);
-	XRROutputInfo* x11_output_info = XRRGetOutputInfo(x11_display, x11_screen_resources, XRRGetOutputPrimary(x11_display, x11_root_window));
-	XRRCrtcInfo* x11_crtc_info = XRRGetCrtcInfo(x11_display, x11_screen_resources, x11_output_info->crtc);
-	XRRScreenConfiguration* x11_screen_configuration = XRRGetScreenInfo(x11_display, x11_root_window);
-	const uint width  = (uint)x11_crtc_info->width; // width and height of primary monitor
-	const uint height = (uint)x11_crtc_info->height;
-	const int window_offset_x = (int)x11_crtc_info->x; // offset of primary monitor in multi-monitor coordinates
-	const int window_offset_y = (int)x11_crtc_info->y;
-	const uint fps_limit = (uint)XRRConfigCurrentRate(x11_screen_configuration);
-	XRRFreeScreenConfigInfo(x11_screen_configuration);
-	XRRFreeCrtcInfo(x11_crtc_info);
-	XRRFreeOutputInfo(x11_output_info);
-	XRRFreeScreenResources(x11_screen_resources);
+	if(x11_screen_resources&&x11_screen_resources->noutput>0) {
+		RROutput selected_output = None;
+		const RROutput primary_output = XRRGetOutputPrimary(x11_display, x11_root_window);
+		for(int i=0; i<x11_screen_resources->noutput; i++) {
+			if(x11_screen_resources->outputs[i]==primary_output) {
+				selected_output = primary_output;
+				break;
+			}
+		}
+		if(selected_output==None) selected_output = x11_screen_resources->outputs[0];
+		XRROutputInfo* x11_output_info = XRRGetOutputInfo(x11_display, x11_screen_resources, selected_output);
+		XRRCrtcInfo* x11_crtc_info = x11_output_info&&x11_output_info->crtc!=None ? XRRGetCrtcInfo(x11_display, x11_screen_resources, x11_output_info->crtc) : nullptr;
+		if(x11_crtc_info) {
+			width = (uint)x11_crtc_info->width;
+			height = (uint)x11_crtc_info->height;
+			window_offset_x = (int)x11_crtc_info->x;
+			window_offset_y = (int)x11_crtc_info->y;
+		}
+		XRRScreenConfiguration* x11_screen_configuration = XRRGetScreenInfo(x11_display, x11_root_window);
+		if(x11_screen_configuration) {
+			const short rr = XRRConfigCurrentRate(x11_screen_configuration);
+			if(rr>0) fps_limit = (uint)rr;
+			XRRFreeScreenConfigInfo(x11_screen_configuration);
+		}
+		if(x11_crtc_info) XRRFreeCrtcInfo(x11_crtc_info);
+		if(x11_output_info) XRRFreeOutputInfo(x11_output_info);
+	}
+	if(x11_screen_resources) XRRFreeScreenResources(x11_screen_resources);
 
 	camera = Camera(width, height, fps_limit);
 
