@@ -729,6 +729,8 @@ int main(int argc, char* argv[]) {
 	Window x11_root_window = DefaultRootWindow(x11_display);
 	uint width = (uint)DisplayWidth(x11_display, DefaultScreen(x11_display));
 	uint height = (uint)DisplayHeight(x11_display, DefaultScreen(x11_display));
+	uint monitor_width = width;
+	uint monitor_height = height;
 	int window_offset_x = 0;
 	int window_offset_y = 0;
 	uint fps_limit = 60u;
@@ -748,6 +750,8 @@ int main(int argc, char* argv[]) {
 		if(x11_crtc_info) {
 			width = (uint)x11_crtc_info->width;
 			height = (uint)x11_crtc_info->height;
+			monitor_width = width;
+			monitor_height = height;
 			window_offset_x = (int)x11_crtc_info->x;
 			window_offset_y = (int)x11_crtc_info->y;
 		}
@@ -761,6 +765,15 @@ int main(int argc, char* argv[]) {
 		if(x11_output_info) XRRFreeOutputInfo(x11_output_info);
 	}
 	if(x11_screen_resources) XRRFreeScreenResources(x11_screen_resources);
+
+	if(g_args["window"].as<bool>()) {
+		const uint requested_width = (uint)g_args["FRAME_WIDTH"].as<int>();
+		const uint requested_height = (uint)g_args["FRAME_HEIGHT"].as<int>();
+		width = requested_width;
+		height = requested_height;
+		window_offset_x += ((int)monitor_width-(int)requested_width)/2;
+		window_offset_y += ((int)monitor_height-(int)requested_height)/2;
+	}
 
 	camera = Camera(width, height, fps_limit);
 
