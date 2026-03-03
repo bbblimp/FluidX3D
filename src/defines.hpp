@@ -146,7 +146,8 @@
     defined(DEMO_COLLIDING_DROPLETS) || \
     defined(DEMO_RAYLEIGH_BENARD_CONVECTION) || \
     defined(DEMO_THERMAL_CONVECTION) || \
-    defined(DEMO_DAM_BREAK)
+    defined(DEMO_DAM_BREAK) || \
+    defined(DEMO_CND_WING)
 #define VOLUME_FORCE // enables global force per volume in one direction (equivalent to a pressure gradient); specified in the LBM class constructor; the force can be changed on-the-fly between time steps at no performance cost
 #endif
 

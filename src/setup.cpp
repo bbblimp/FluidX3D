@@ -1864,6 +1864,7 @@ void main_setup() { // input parameter drivern sim; 					required extensions in 
 			}
 		if(auto_record) key_O = true; // enable scripted recording without manual keypress
 		lbm.run(0u); // initialize simulation
+		if(!auto_record) camera.allow_rendering = false; // keep interactive window from continuously rendering in calc-only mode
 		while((sweep_duration_s<=0.0f) || (lbm.get_t()<=units.t(sweep_duration_s))) { // main simulation loop
 			//if(lbm.graphics.next_frame(units.t(si_T), 10.0f)) lbm.graphics.write_frame();
 			// camera.allow_rendering
@@ -1881,14 +1882,13 @@ void main_setup() { // input parameter drivern sim; 					required extensions in 
 					lbm.u.write_to_device();
 					last_profile_si_u = target_si_u;
 				}
-				if(key_O || auto_record) {
-				  camera.allow_labeling = true; // render what they want to show
-			  const float frame_interval = (1.0f/g_args["fps"].as<float>())/g_args["slomo"].as<float>();
-			  if(next_frame_time < 0.0f) next_frame_time = sim_time; // first frame immediately
-			  if(sim_time >= next_frame_time) {
+				const bool sample_drag = record_drag_series;
+				const float frame_interval = (1.0f/g_args["fps"].as<float>())/g_args["slomo"].as<float>();
+				if((key_O || auto_record || sample_drag) && next_frame_time < 0.0f) next_frame_time = sim_time; // first output sample immediately
+				if((key_O || auto_record || sample_drag) && sim_time >= next_frame_time) {
 		    next_frame_time += frame_interval;
 
-				    if(record_drag_series) {
+				    if(sample_drag) {
 				    	lbm.update_force_field();
 				    	const float3 lbm_force = lbm.object_force(TYPE_S);
 				    	const float3 si_force = float3(units.si_F(lbm_force.x), units.si_F(lbm_force.y), units.si_F(lbm_force.z));
@@ -1905,16 +1905,18 @@ void main_setup() { // input parameter drivern sim; 					required extensions in 
 				    		to_string(si_force.z, 6u)+","+
 			    		to_string(drag_N, 6u)+","+
 			    		to_string(cda_m2, 6u)+"\n");
-			    }
-			    camera.allow_labeling = true; // render what they want to show
-			    lbm.graphics.write_frame();
-			    // key_O=false;
-			    //std::cout <<std::endl << " step=" << lbm.get_t() << " time(s)=" << sim_time << " allow_labeling=" << camera.allow_labeling << " allow_rendering=" << camera.allow_rendering << " next_frame_time=" << next_frame_time;
-			    std::cout << " step=" << lbm.get_t() << " time(s)=" << sim_time << " allow_labeling=" << camera.allow_labeling << " allow_rendering=" << camera.allow_rendering << " next_frame_time=" << next_frame_time <<std::endl;
-                  }
-		}
-		lbm.run(1u);
-	}
+				    }
+				    if(key_O || auto_record) {
+				    	camera.allow_rendering = true;
+				    	camera.allow_labeling = true; // render what they want to show
+				    	lbm.graphics.write_frame();
+				    	if(!auto_record) camera.allow_rendering = false;
+				    }
+				    //std::cout <<std::endl << " step=" << lbm.get_t() << " time(s)=" << sim_time << " allow_labeling=" << camera.allow_labeling << " allow_rendering=" << camera.allow_rendering << " next_frame_time=" << next_frame_time;
+				    std::cout << " step=" << lbm.get_t() << " time(s)=" << sim_time << " allow_labeling=" << camera.allow_labeling << " allow_rendering=" << camera.allow_rendering << " next_frame_time=" << next_frame_time <<std::endl;
+	                }
+				lbm.run(1u);
+			}
 
 	//lbm.run();
 
