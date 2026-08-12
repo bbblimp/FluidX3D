@@ -1857,6 +1857,10 @@ void main_setup() { // input parameter drivern sim; 					required extensions in 
 				return (float)(up_steps+down_steps)*(ramp+hold);
 			};
 			const float sweep_duration_s = speed_profile_duration_s();
+							const float run_duration_s = si_T>0.0f ? si_T : sweep_duration_s;
+							if(speed_profile_enabled && si_T<=0.0f && sweep_duration_s>0.0f) {
+								print_info("SPEED_PROFILE: --secs is non-positive; using full sweep duration "+to_string(sweep_duration_s, 6u)+" s.");
+							}
 			float last_profile_si_u = -1.0f;
 			const string drag_csv = g_args["export"].as<string>()+"drag_timeseries.csv";
 			if(record_drag_series) {
@@ -1865,7 +1869,7 @@ void main_setup() { // input parameter drivern sim; 					required extensions in 
 		if(auto_record) key_O = true; // enable scripted recording without manual keypress
 		lbm.run(0u); // initialize simulation
 		if(!auto_record) camera.allow_rendering = false; // keep interactive window from continuously rendering in calc-only mode
-		while((sweep_duration_s<=0.0f) || (lbm.get_t()<=units.t(sweep_duration_s))) { // main simulation loop
+				while((run_duration_s<=0.0f) || (lbm.get_t()<=units.t(run_duration_s))) { // main simulation loop
 			//if(lbm.graphics.next_frame(units.t(si_T), 10.0f)) lbm.graphics.write_frame();
 			// camera.allow_rendering
 			// Simulation Time: draw_label(ox, oy+i, "Simulation Time "+alignr(21u, /**************************************/ (units.si_t(1ull)==1.0f?to_string(info.lbm->get_t()):to_string(units.si_t(info.lbm->get_t()), 6u))+"s"), c); i+=FONT_HEIGHT;
